@@ -8,7 +8,7 @@ terraform {
 
     workspaces {
       name = "ECS_workflow"
-    } 
+    }
   }
 }
 
@@ -115,7 +115,7 @@ resource "aws_security_group" "sg" {
   }
 
   egress {
-    description = "To allow ECR repository image download"
+    description      = "To allow ECR repository image download"
     from_port        = 443
     to_port          = 443
     protocol         = "tcp"
