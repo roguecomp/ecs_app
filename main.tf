@@ -3,10 +3,12 @@ provider "aws" {
 }
 
 terraform {
-  backend "s3" {
-    bucket = "minecraft-fargate-tf-state"
-    key    = "ecs.tfstate"
-    region = "ap-southeast-2"
+  cloud {
+    organization = "vishnukap_learning"
+
+    workspaces {
+      name = "ECS_workflow"
+    } 
   }
 }
 
