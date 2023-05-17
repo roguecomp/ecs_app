@@ -13,8 +13,7 @@ terraform {
 }
 
 locals {
-  app_name    = "${var.tag}-${var.app}"
-  aws_ecs_url = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com"
+  app_name = "${var.tag}-${var.app}"
 }
 
 module "vpc" {
@@ -172,75 +171,7 @@ resource "aws_lb_target_group" "target_group_public" {
   }
 }
 
-terraform {
-  required_providers {
-    docker = {
-      source  = "kreuzwerker/docker"
-      version = "2.22.0"
-    }
-  }
-}
-
 data "aws_caller_identity" "current" {}
-
-data "aws_ecr_authorization_token" "token" {}
-
-provider "docker" {
-  registry_auth {
-    address  = local.aws_ecs_url
-    username = data.aws_ecr_authorization_token.token.user_name
-    password = data.aws_ecr_authorization_token.token.password
-  }
-}
-
-resource "aws_ecr_repository" "app" {
-  name                 = local.app_name
-  image_tag_mutability = "IMMUTABLE"
-  force_delete         = true
-}
-
-resource "aws_ecr_repository_policy" "ecr_repository_policy" {
-  repository = aws_ecr_repository.app.name
-
-  policy = <<EOF
-{
-    "Version": "2008-10-17",
-    "Statement": [
-        {
-            "Sid": "new policy",
-            "Effect": "Allow",
-            "Principal": "*",
-            "Action": [
-                "ecr:GetDownloadUrlForLayer",
-                "ecr:BatchGetImage",
-                "ecr:BatchCheckLayerAvailability",
-                "ecr:PutImage",
-                "ecr:InitiateLayerUpload",
-                "ecr:UploadLayerPart",
-                "ecr:CompleteLayerUpload",
-                "ecr:DescribeRepositories",
-                "ecr:GetRepositoryPolicy",
-                "ecr:ListImages",
-                "ecr:DeleteRepository",
-                "ecr:BatchDeleteImage",
-                "ecr:SetRepositoryPolicy",
-                "ecr:DeleteRepositoryPolicy"
-            ]
-        }
-    ]
-}
-EOF
-}
-
-resource "docker_registry_image" "app" {
-  name = "${aws_ecr_repository.app.repository_url}:latest"
-
-  build {
-    context    = "container_dir"
-    dockerfile = "Dockerfile"
-  }
-
-}
 
 resource "random_string" "rand4" {
   length  = 4
@@ -320,6 +251,10 @@ resource "aws_ecs_cluster_capacity_providers" "app" {
   }
 }
 
+data "aws_ecr_repository" "app" {
+  name = local.app_name
+}
+
 resource "aws_ecs_task_definition" "ecs_task" {
   family                   = "${local.app_name}_server"
   cpu                      = var.container_cpu
@@ -333,7 +268,7 @@ resource "aws_ecs_task_definition" "ecs_task" {
     [
       {
         "cpu" : var.container_cpu,
-        "image" : aws_ecr_repository.app.repository_url,
+        "image" : data.aws_ecr_repository.app.repository_url,
         "memory" : var.container_memory,
         "name" : local.app_name
         "portMappings" : [
