@@ -27,7 +27,7 @@ module "vpc" {
   private_subnets = ["10.0.0.0/24", "10.0.1.0/24", "10.0.2.0/24"]
   public_subnets  = ["10.0.3.0/24", "10.0.4.0/24", "10.0.5.0/24"]
 
-  enable_nat_gateway     = false
+  enable_nat_gateway     = true
   single_nat_gateway     = true
   one_nat_gateway_per_az = false
 
@@ -311,7 +311,7 @@ resource "aws_ecs_service" "ecs_service" {
   force_new_deployment = true
 
   network_configuration {
-    subnets         = data.aws_subnets.public.ids
+    subnets         = data.aws_subnets.private.ids
     security_groups = [aws_security_group.sg.id]
   }
   # Track the latest ACTIVE revision
